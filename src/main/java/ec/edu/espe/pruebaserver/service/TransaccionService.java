@@ -7,7 +7,10 @@ import ec.edu.espe.pruebaserver.exception.NotFoundException;
 import ec.edu.espe.pruebaserver.model.Cuenta;
 import ec.edu.espe.pruebaserver.model.Transaccion;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -16,9 +19,16 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class TransaccionService {
-
     private final TransaccionRepository transaccionRepository;
     private final CuentaRepository cuentaRepository;
+
+    private static final String BASE_URL = "http://localhost:8080/nombre";
+
+    private final RestTemplate restTemplate;
+
+    public TransaccionService() {
+        this.restTemplate = new RestTemplate(getClientHttpRequestFactory());
+    }
 
     public void transferir(Integer cuentaOrigen, Integer cuentaDestino, BigDecimal valor) {
         Cuenta cuentaOrigenDB = existeCuenta(cuentaOrigen);
@@ -36,11 +46,19 @@ public class TransaccionService {
         this.transaccionRepository.save(nuevaTransaccion);
     }
 
-    private Cuenta existeCuenta(Integer cuenta)
-            throws NotFoundException {
+    private Cuenta existeCuenta(Integer cuenta) throws NotFoundException {
         return cuentaRepository
                 .findByIdInterno(cuenta)
                 .orElseThrow(() -> new NotFoundException("La cuenta indicada no existe"));
+    }
+
+    private ClientHttpRequestFactory getClientHttpRequestFactory() {
+        HttpComponentsClientHttpRequestFactory clientHttpRequestFactory = new HttpComponentsClientHttpRequestFactory();
+        int connectTimeout = 5000;
+        int readTimeout = 5000;
+        clientHttpRequestFactory.setConnectTimeout(connectTimeout);
+        clientHttpRequestFactory.setReadTimeout(readTimeout);
+        return clientHttpRequestFactory;
     }
 
 }
